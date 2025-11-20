@@ -61,7 +61,7 @@ class ChatViewController: UIViewController {
         setupKeyboardObservers()
         
         // Add some initial messages
-        addInitialMessages()
+        //addInitialMessages()
     }
     
     deinit {
@@ -121,6 +121,17 @@ class ChatViewController: UIViewController {
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(MessageTableViewCell.self, forCellReuseIdentifier: MessageTableViewCell.identifier)
+        
+        // Configura altura automática das células para suportar múltiplas linhas
+        tableView.estimatedRowHeight = 60
+        tableView.rowHeight = UITableView.automaticDimension
+        
+        // Adiciona contentInset inferior para criar espaço em branco embaixo
+        // Isso permite que as mensagens subam naturalmente quando novas são adicionadas
+        let screenHeight = UIScreen.main.bounds.height
+        let bottomInset = screenHeight - 200 // 200 pontos reservados para as 2 últimas mensagens
+//        tableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
+//        tableView.scrollIndicatorInsets = UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0)
     }
     
     private func setupActions() {
@@ -221,11 +232,11 @@ class ChatViewController: UIViewController {
     private func sendAutomaticResponse(to userMessage: String) {
         let responses = [
             "Entendi! Obrigado por compartilhar.",
-            "Isso é interessante! Conte-me mais.",
+            "Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.Isso é interessante! Conte-me mais.",
             "Resposta automática: Recebi sua mensagem.",
-            "Legal! Posso ajudar com mais alguma coisa?",
-            "Boa! Vou processar isso.",
-            "Compreendo. Alguma outra dúvida?"
+//            "Legal! Posso ajudar com mais alguma coisa?",
+//            "Boa! Vou processar isso.",
+//            "Compreendo. Alguma outra dúvida?"
         ]
         
         let randomResponse = responses.randomElement() ?? "Resposta automática"
@@ -239,8 +250,53 @@ class ChatViewController: UIViewController {
     private func scrollToBottom() {
         guard !messages.isEmpty else { return }
         
-        let indexPath = IndexPath(row: messages.count - 1, section: 0)
-        tableView.scrollToRow(at: indexPath, at: .bottom, animated: true)
+        // Força o layout da tableView para garantir que o contentSize está atualizado
+        tableView.layoutIfNeeded()
+        
+        // Atualiza o contentInset dinamicamente para ter espaço suficiente
+        // para scrollar todas as mensagens antigas para fora da tela
+        updateContentInset()
+        
+        // Pega a última célula adicionada
+        let lastIndexPath = IndexPath(row: messages.count - 2, section: 0)
+        let lastCellRect = tableView.rectForRow(at: lastIndexPath)
+        
+        // Pega o contentOffset atual
+        let currentOffset = tableView.contentOffset.y
+        
+        // Calcula o novo offset: offset atual + altura da última célula
+        // Isso "empurra" a nova mensagem para cima de forma incremental
+        let newOffsetY = currentOffset + lastCellRect.height
+        let newOffset = CGPoint(x: 0, y: lastCellRect.origin.y)
+        
+        tableView.setContentOffset(newOffset, animated: true)
+    }
+    
+    private func updateContentInset() {
+        guard messages.count >= 2 else {
+            // Se tiver menos de 2 mensagens, usa contentInset mínimo
+            let tableHeight = tableView.bounds.height
+            tableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: tableHeight, right: 0)
+            tableView.scrollIndicatorInsets = UIEdgeInsets(top: 0, left: 0, bottom: tableHeight, right: 0)
+            return
+        }
+        
+        // Calcula a soma da altura das 2 últimas células
+        let lastIndexPath = IndexPath(row: messages.count - 1, section: 0)
+        let secondToLastIndexPath = IndexPath(row: messages.count - 2, section: 0)
+        
+        let lastCellHeight = tableView.rectForRow(at: lastIndexPath).height
+        let secondToLastCellHeight = tableView.rectForRow(at: secondToLastIndexPath).height
+        
+        let contentHeight = lastCellHeight + secondToLastCellHeight
+        let tableHeight = tableView.bounds.height
+        
+        // ContentInset no bottom = altura da tela - altura das 2 últimas células
+        // Isso deixa espaço para scrollar todas as mensagens antigas para cima
+        let necessaryInset = max(tableHeight - contentHeight, 0)
+        
+        tableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: max(necessaryInset, 0), right: 0)
+        tableView.scrollIndicatorInsets = UIEdgeInsets(top: 0, left: 0, bottom: max(necessaryInset, 0), right: 0)
     }
 }
 
