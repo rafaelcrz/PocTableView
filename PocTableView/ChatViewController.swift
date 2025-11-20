@@ -144,6 +144,7 @@ class ChatViewController: UIViewController {
             cell.configure(with: message)
             return cell
         }
+        dataSource.defaultRowAnimation = .bottom
         
         // Adiciona contentInset inferior para criar espaço em branco embaixo
         // Isso permite que as mensagens subam naturalmente quando novas são adicionadas
@@ -219,9 +220,11 @@ class ChatViewController: UIViewController {
         var snapshot = NSDiffableDataSourceSnapshot<Section, Message>()
         snapshot.appendSections([.main])
         snapshot.appendItems(messages)
-        dataSource.applySnapshotUsingReloadData(snapshot, completion: {
-            completion?()
-        })
+        dataSource.apply(snapshot, animatingDifferences: animated)
+        completion?()
+//        dataSource.applySnapshotUsingReloadData(snapshot, completion: {
+//            completion?()
+//        })
     }
     
     private func addInitialMessages() {
