@@ -266,10 +266,10 @@ class ChatViewController: UIViewController {
         
         // Calcula o novo offset: offset atual + altura da última célula
         // Isso "empurra" a nova mensagem para cima de forma incremental
-        let newOffsetY = currentOffset + lastCellRect.height
+//        let newOffsetY = currentOffset + lastCellRect.height
         let newOffset = CGPoint(x: 0, y: lastCellRect.origin.y)
         
-        tableView.setContentOffset(newOffset, animated: true)
+        self.tableView.setContentOffset(newOffset, animated: true)
     }
     
     private func updateContentInset() {
