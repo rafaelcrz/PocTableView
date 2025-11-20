@@ -2,9 +2,16 @@ import UIKit
 
 class ChatViewController: UIViewController {
     
+    // MARK: - Types
+    
+    enum Section: CaseIterable {
+        case main
+    }
+    
     // MARK: - Properties
     
     private var messages: [Message] = []
+    private var dataSource: UITableViewDiffableDataSource<Section, Message>!
     
     // MARK: - UI Components
     
@@ -119,12 +126,24 @@ class ChatViewController: UIViewController {
     
     private func setupTableView() {
         tableView.delegate = self
-        tableView.dataSource = self
         tableView.register(MessageTableViewCell.self, forCellReuseIdentifier: MessageTableViewCell.identifier)
         
         // Configura altura automática das células para suportar múltiplas linhas
         tableView.estimatedRowHeight = 60
         tableView.rowHeight = UITableView.automaticDimension
+        
+        // Configura o DiffableDataSource
+        dataSource = UITableViewDiffableDataSource<Section, Message>(tableView: tableView) { tableView, indexPath, message in
+            guard let cell = tableView.dequeueReusableCell(
+                withIdentifier: MessageTableViewCell.identifier,
+                for: indexPath
+            ) as? MessageTableViewCell else {
+                return UITableViewCell()
+            }
+            
+            cell.configure(with: message)
+            return cell
+        }
         
         // Adiciona contentInset inferior para criar espaço em branco embaixo
         // Isso permite que as mensagens subam naturalmente quando novas são adicionadas
@@ -196,10 +215,19 @@ class ChatViewController: UIViewController {
     
     // MARK: - Message Handling
     
+    private func updateSnapshot(animated: Bool = false, completion: (() -> Void)?) {
+        var snapshot = NSDiffableDataSourceSnapshot<Section, Message>()
+        snapshot.appendSections([.main])
+        snapshot.appendItems(messages)
+        dataSource.applySnapshotUsingReloadData(snapshot, completion: {
+            completion?()
+        })
+    }
+    
     private func addInitialMessages() {
         let welcomeMessage = Message(text: "Olá! Bem-vindo ao chat. Como posso ajudar?", isFromUser: false)
         messages.append(welcomeMessage)
-        tableView.reloadData()
+        updateSnapshot {}
     }
     
     @objc private func sendButtonTapped() {
@@ -219,9 +247,10 @@ class ChatViewController: UIViewController {
         // Clear text field
         textField.text = ""
         
-        // Reload table and scroll
-        tableView.reloadData()
-        scrollToBottom()
+        // Update snapshot and scroll
+        updateSnapshot(animated: true) {
+            self.scrollToBottom()
+        }
         
         // Simulate automatic response after a short delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
@@ -243,8 +272,9 @@ class ChatViewController: UIViewController {
         let botMessage = Message(text: randomResponse, isFromUser: false)
         
         messages.append(botMessage)
-        tableView.reloadData()
-        scrollToBottom()
+        updateSnapshot(animated: true) {
+            self.scrollToBottom()
+        }
     }
     
     private func scrollToBottom() {
@@ -300,26 +330,10 @@ class ChatViewController: UIViewController {
     }
 }
 
-// MARK: - UITableViewDelegate & UITableViewDataSource
+// MARK: - UITableViewDelegate
 
-extension ChatViewController: UITableViewDelegate, UITableViewDataSource {
-    
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return messages.count
-    }
-    
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        guard let cell = tableView.dequeueReusableCell(
-            withIdentifier: MessageTableViewCell.identifier,
-            for: indexPath
-        ) as? MessageTableViewCell else {
-            return UITableViewCell()
-        }
-        
-        let message = messages[indexPath.row]
-        cell.configure(with: message)
-        return cell
-    }
+extension ChatViewController: UITableViewDelegate {
+    // Delegate methods can be added here if needed
 }
 
 // MARK: - UITextFieldDelegate
